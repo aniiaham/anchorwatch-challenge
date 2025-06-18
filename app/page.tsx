@@ -103,7 +103,7 @@ function Dashboard() {
   };
 
   return (
-    <section className="bg-greyscale-white min-h-svh w-full">
+    <div className="bg-greyscale-white min-h-svh w-full">
       <nav className="bg-[#F0F1F1] flex flex-row items-center justify-between px-6 h-20">
         <div className="grid grid-cols-2 items-center h-full">
           <Image src={logo} alt="logo" />
@@ -129,7 +129,7 @@ function Dashboard() {
         <div className="border-r-2 border-greyscale-6 max-w-[420px] w-full p-4 min-h-svh">
           <AlertAddBtcAddress onAddressSelect={handleAddressSelect} />
         </div>
-        <div className="w-3/4 mt-4">
+        <div className="w-3/4 mt-4 ">
           <div className="h-full w-full flex flex-col gap-4">
             <div className="h-[400px] bg-greyscale-2 rounded-t border border-border-color mx-4">
               <div className="font-mono text-xl font-medium leading-6 py-3 ml-2">
@@ -154,7 +154,7 @@ function Dashboard() {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -171,6 +171,18 @@ function AddressBalance({ address }: { address: string }) {
       return await response.json();
     },
     enabled: !!address,
+  });
+
+  const { data: priceData } = useQuery<{ USD: number }>({
+    queryKey: ["btc-price-mempool"],
+    queryFn: async () => {
+      const response = await fetch("https://mempool.space/api/v1/prices");
+      if (!response.ok) {
+        throw new Error("Failed to fetch BTC price");
+      }
+      return await response.json();
+    },
+    refetchInterval: 60000, // Refetch every minute
   });
 
   const addressBalance = data
@@ -195,11 +207,26 @@ function AddressBalance({ address }: { address: string }) {
       }, 0)
     : 0;
 
+  const btcBalance = addressBalance / 100000000;
+  const usdValue = priceData ? btcBalance * priceData.USD : 0;
+
   return (
     <div className="text-right">
-      <div className="font-mono text-2xl font-medium text-black leading-[114%] tracking-[5%] flex flex-row gap-2 items-center">
+      <div className="font-mono text-2xl font-medium text-black leading-[114%] tracking-[5%] flex flex-row gap-2 items-center justify-end">
         <Image src={btcImage} alt="btc shape" />
-        {(addressBalance / 100000000).toFixed(8)} BTC
+        <div className="flex flex-row items-center gap-4">
+          <div>{btcBalance.toFixed(8)} BTC</div>
+          {priceData && (
+            <div className="text-light-teal-1 font-mono leading-[28.8px] text-2xl font-normal">
+              $
+              {usdValue.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+              USD
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
