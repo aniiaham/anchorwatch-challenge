@@ -16,7 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import radarImg from "@/public/images/radar.png";
+import radarImg from "@/public/images/radar-1.png";
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -221,60 +221,58 @@ export function AlertAddBtcAddress({
           <AlertDialogCancel className="flex flex-row justify-end">
             <X />
           </AlertDialogCancel>
-          <AlertDialogTitle className="bg-[#F0F1F1] border border-t-greyscale-6 border-b-greyscale-6 p-8 w-full h-[50px] flex items-center text-dark-teal-2">
+          <AlertDialogTitle className="bg-[#F0F1F1] border border-t-greyscale-6  p-8 w-full h-[50px] flex items-center text-dark-teal-2">
             ADD BTC ADDRESS
           </AlertDialogTitle>
-        </AlertDialogHeader>
-        <div className="grid grid-cols-2">
-          <div className="flex flex-col gap-8 py-4 px-8 justify-start border-r border-greyscale-6">
-            <AlertDialogDescription className="text-dark-teal-2 font-medium text-xl leading-6 tracking-[-0.5%]">
-              Enter the address below to add to your vault
-            </AlertDialogDescription>
-            <div className="flex flex-col gap-2 ">
-              <p className="text-lg font-mono font-medium leading-[21.6px] tracking-[-0.09px] text-[#001E20]">
-                ADDRESS
-              </p>
-              <Input
-                placeholder="Enter address here"
-                value={inputAddress}
-                onChange={(e) => setInputAddress(e.target.value)}
-                maxLength={46}
-              />
-              <p className="text-[#00474B] font-mono text-base font-normal leading-[19.2px] tracking-[-0.08px]">
-                46 characters maximum
-              </p>
+
+          <div className="grid grid-cols-2 h-full">
+            <div className="flex flex-col justify-between py-4 px-8  border-2 border-t-greyscale-6 border-b-greyscale-6 border-l-greyscale-6">
+              <div className="flex flex-col gap-8">
+                <AlertDialogDescription className="text-dark-teal-2 font-medium text-xl leading-6 tracking-[-0.5%] ">
+                  Enter the address below to add to your vault
+                </AlertDialogDescription>
+                <div className="flex flex-col gap-2 ">
+                  <p className="text-lg font-mono font-medium leading-[21.6px] tracking-[-0.09px] text-[#001E20]">
+                    ADDRESS
+                  </p>
+                  <Input
+                    placeholder="Enter address here"
+                    value={inputAddress}
+                    onChange={(e) => setInputAddress(e.target.value)}
+                    maxLength={46}
+                  />
+                  <p className="text-[#00474B] font-mono text-base font-normal leading-[19.2px] tracking-[-0.08px]">
+                    46 characters maximum
+                  </p>
+                </div>
+              </div>
+              <div>
+                {!inputAddress ? (
+                  <div className="pb-4">
+                    <AlertDialogAction
+                      onClick={handleAddAddress}
+                      disabled
+                      className="bg-light-teal-1 h-12 w-46 border-1"
+                    >
+                      Next
+                    </AlertDialogAction>
+                  </div>
+                ) : (
+                  <div className="pb-4">
+                    <AlertDialogAction
+                      onClick={handleAddAddress}
+                      className="bg-light-teal-1 h-12 w-46  border-1"
+                    >
+                      Next
+                    </AlertDialogAction>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div>
-            <Image
-              src={radarImg}
-              alt="radar img"
-              className="w-[288px] h-[288px] m-14"
-            />
+            <Image src={radarImg} alt="radar img" className="" />
           </div>
-        </div>
-
-        {!inputAddress ? (
-          <div className="px-8 pb-8">
-            <AlertDialogAction
-              onClick={handleAddAddress}
-              disabled
-              className="bg-light-teal-1 h-12 w-46 border-1"
-            >
-              Next
-            </AlertDialogAction>
-          </div>
-        ) : (
-          <div className="px-8 pb-8 ">
-            <AlertDialogAction
-              onClick={handleAddAddress}
-              className="bg-light-teal-1 h-12 w-46  border-1"
-            >
-              Next
-            </AlertDialogAction>
-          </div>
-        )}
+        </AlertDialogHeader>
       </AlertDialogContent>
     </AlertDialog>
   );
