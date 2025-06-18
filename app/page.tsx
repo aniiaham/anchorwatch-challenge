@@ -137,6 +137,11 @@ function Dashboard() {
     );
   };
 
+  const truncatedAddress = `${selectedAddress.slice(
+    0,
+    10
+  )}...${selectedAddress.slice(-10)}`;
+
   return (
     <div className="bg-greyscale-white min-h-svh w-full">
       <nav className="bg-[#F0F1F1] flex flex-row items-center justify-between px-6 h-20">
@@ -149,7 +154,7 @@ function Dashboard() {
         <Image src={viewIcon} alt="view eye" />
       </nav>
       <div className="bg-greyscale-white h-18 text-dark-teal-2 font-mono font-medium leading-[114%] tracking-[5%] text-2xl flex items-center justify-between px-4">
-        <div>{selectedAddress || "BTC ADDRESS HERE"}</div>
+        <div>{truncatedAddress || "BTC ADDRESS HERE"}</div>
         {selectedAddress && <AddressBalance address={selectedAddress} />}
       </div>
       <div className="flex flex-row w-full">
@@ -636,7 +641,10 @@ function StarredTransactions({
                     className="hover:scale-110 transition-transform"
                     title="Remove from favorites"
                   >
-                    <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                    <Star
+                      size={14}
+                      className="fill-yellow-400 text-yellow-400"
+                    />
                   </button>
                 </div>
                 <div className="font-mono text-xs text-dark-teal-2 mb-1">
