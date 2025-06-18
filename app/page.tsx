@@ -7,7 +7,6 @@ import btcIcon from "@/public/images/btc-icon.svg";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -165,8 +164,8 @@ function Dashboard() {
         </div>
         <div className="bg-[#F0F1F1] py-4 border-t-2 border-border-color w-full border-b-2"></div>
       </div>
-      <div className="flex flex-row w-full min-h-svh">
-        <div className="border-r-2 border-greyscale-6 max-w-[420px] h-[850px] flex flex-col gap-8 w-full p-4 ">
+      <div className="grid grid-cols-[420px_1fr] min-h-svh">
+        <div className="flex flex-col gap-8 w-full p-4  border-r-2 border-border-color">
           <AlertAddBtcAddress onAddressSelect={handleAddressSelect} />{" "}
           <ScrollArea className="h-[720px] w-full">
             <StarredTransactions
@@ -176,8 +175,8 @@ function Dashboard() {
             />
           </ScrollArea>
         </div>
-        <div className="w-3/4 mt-4 ">
-          <div className="h-full w-full flex flex-col gap-4">
+        <div className="w-full">
+          <div className="h-full w-full flex flex-col gap-4 mt-4">
             <div className="h-[400px] bg-greyscale-2 rounded-t border border-border-color mx-4">
               <div className="font-mono text-xl font-medium leading-6 py-3 ml-2">
                 HOLDINGS
