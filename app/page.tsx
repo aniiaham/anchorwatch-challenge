@@ -126,7 +126,7 @@ function Dashboard() {
         <div className="bg-[#F0F1F1] py-4 border-t-2 border-border-color w-full border-b-2"></div>
       </div>
       <div className="flex flex-row w-full min-h-svh">
-        <div className="border-r-2 border-greyscale-6 max-w-[420px] w-full p-4">
+        <div className="border-r-2 border-greyscale-6 max-w-[420px] w-full p-4 min-h-svh">
           <AlertAddBtcAddress onAddressSelect={handleAddressSelect} />
         </div>
         <div className="w-3/4 mt-4">
