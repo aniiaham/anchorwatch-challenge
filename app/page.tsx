@@ -727,6 +727,7 @@ function AlertAddBtcAddress({
         return false;
       }
     } catch (error) {
+      console.error(error);
       setValidationError(
         "Unable to validate address. Please check your connection."
       );
