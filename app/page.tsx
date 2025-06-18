@@ -25,7 +25,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import radarImg from "@/public/images/radar-1.png";
-import { X } from "lucide-react";
+import { X, Star } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   QueryClient,
@@ -234,7 +234,31 @@ function AddressBalance({ address }: { address: string }) {
 
 function TransactionHistory({ address }: { address: string }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [starredTransactions, setStarredTransactions] = useState<Set<string>>(
+    new Set()
+  );
   const itemsPerPage = 5;
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`starred-transactions-${address}`);
+    if (saved) {
+      setStarredTransactions(new Set(JSON.parse(saved)));
+    }
+  }, [address]);
+
+  const toggleStar = (txid: string) => {
+    const newStarred = new Set(starredTransactions);
+    if (newStarred.has(txid)) {
+      newStarred.delete(txid);
+    } else {
+      newStarred.add(txid);
+    }
+    setStarredTransactions(newStarred);
+    localStorage.setItem(
+      `starred-transactions-${address}`,
+      JSON.stringify([...newStarred])
+    );
+  };
 
   const { isPending, error, data } = useQuery<Transaction[]>({
     queryKey: ["transactions", address],
@@ -339,6 +363,7 @@ function TransactionHistory({ address }: { address: string }) {
       <table className="w-full">
         <thead>
           <tr className="h-[50px] bg-greyscale-2 w-full rounded border border-border-color mx-4">
+            <th></th>
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
               TYPE
             </th>
@@ -365,6 +390,26 @@ function TransactionHistory({ address }: { address: string }) {
               key={tx.txid}
               className="border-b border-greyscale-6 hover:bg-greyscale-0"
             >
+              <td className="py-3 px-2">
+                <button
+                  onClick={() => toggleStar(tx.txid)}
+                  className="hover:scale-110 transition-transform"
+                  title={
+                    starredTransactions.has(tx.txid)
+                      ? "Remove from favorites"
+                      : "Add to favorites"
+                  }
+                >
+                  <Star
+                    size={16}
+                    className={`${
+                      starredTransactions.has(tx.txid)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-400 hover:text-yellow-400"
+                    }`}
+                  />
+                </button>
+              </td>
               <td className="py-3 px-2 font-mono text-sm font-medium">
                 <span className="px-2 py-1 rounded text-sm text-light-teal-1">
                   {tx.type === "received" ? "RECEIVE" : "SEND"}
