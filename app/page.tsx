@@ -25,7 +25,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import radarImg from "@/public/images/radar-1.png";
-import { X, Star } from "lucide-react";
+import { X, Star, ChevronUp, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   QueryClient,
@@ -293,7 +293,12 @@ function TransactionHistory({
   toggleStar: (txid: string) => void;
 }) {
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const itemsPerPage = 5;
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "newest" ? "oldest" : "newest");
+  };
 
   const { isPending, error, data } = useQuery<Transaction[]>({
     queryKey: ["transactions", address],
@@ -309,14 +314,12 @@ function TransactionHistory({
     enabled: !!address,
   });
 
-  // Format transactions with calculated amounts for display
   const formattedTransactions: FormattedTransaction[] = data
     ? data
         .map((tx) => {
           let amount = 0;
           let type: "received" | "sent" = "sent";
 
-          // Calculate net amount for this transaction
           tx.vout.forEach((output) => {
             if (output.scriptpubkey_address === address) {
               amount += output.value;
@@ -339,16 +342,16 @@ function TransactionHistory({
             amount: Math.abs(amount),
             type,
             netAmount: amount,
-            runningBalance: 0, // Will be calculated after sorting
+            runningBalance: 0,
           };
         })
-        // Sort by date (oldest first for running balance calculation)
+
         .sort((a, b) => {
           const timeA = a.status.block_time || 0;
           const timeB = b.status.block_time || 0;
-          return timeA - timeB;
+          return sortOrder === "newest" ? timeB - timeA : timeA - timeB;
         })
-        // Calculate running balance
+
         .map((tx, index, sortedTxs) => {
           const runningBalance = sortedTxs
             .slice(0, index + 1)
@@ -359,8 +362,6 @@ function TransactionHistory({
             runningBalance,
           };
         })
-        // Sort by date (newest first for display)
-        .reverse()
     : [];
 
   const totalPages = formattedTransactions
@@ -406,7 +407,19 @@ function TransactionHistory({
               TX ID
             </th>
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
-              DATE
+              <button
+                onClick={toggleSortOrder}
+                className="flex items-center gap-1 hover:text-dark-teal-1 transition-colors"
+              >
+                DATE
+                <div>
+                  {sortOrder === "newest" ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronUp size={16} />
+                  )}
+                </div>
+              </button>
             </th>
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
               AMOUNT (BTC)
