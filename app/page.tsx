@@ -167,7 +167,6 @@ function TransactionHistory({ address }: { address: string }) {
               {tx.txid}
             </div>
             <div>
-              {" "}
               {tx.status.block_time && (
                 <span>
                   {new Date(tx.status.block_time * 1000).toLocaleDateString()}
@@ -183,14 +182,6 @@ function TransactionHistory({ address }: { address: string }) {
             >
               {tx.status.confirmed ? "Confirmed" : "Pending"}
             </div>
-          </div>
-          <div className="flex justify-between text-xs text-greyscale-7 font-mono">
-            <span>Fee: {tx.fee} sats</span>
-            {tx.status.block_time && (
-              <span>
-                {new Date(tx.status.block_time * 1000).toLocaleDateString()}
-              </span>
-            )}
           </div>
         </div>
       ))}
@@ -233,48 +224,57 @@ export function AlertAddBtcAddress({
           <AlertDialogTitle className="bg-[#F0F1F1] border border-t-greyscale-6 border-b-greyscale-6 p-8 w-full h-[50px] flex items-center text-dark-teal-2">
             ADD BTC ADDRESS
           </AlertDialogTitle>
-          <div className="flex flex-row px-8 gap-20 py-4">
-            <div className="flex flex-col gap-8">
-              <AlertDialogDescription>
-                Enter the address below to add to your vault
-              </AlertDialogDescription>
-              <div className="flex flex-col gap-2">
-                <p className="text-lg font-mono font-medium leading-[21.6px] tracking-[-0.09px] text-[#001E20]">
-                  ADDRESS
-                </p>
-                <Input
-                  placeholder="Enter address here"
-                  value={inputAddress}
-                  onChange={(e) => setInputAddress(e.target.value)}
-                  maxLength={46}
-                />
-                <p className="text-[#00474B] font-mono text-base font-normal leading-[19.2px] tracking-[-0.08px]">
-                  46 characters maximum
-                </p>
-              </div>
-            </div>
-            <div className="border-l border-greyscale-6 ">
-              <Image
-                src={radarImg}
-                alt="radar img"
-                className="w-[289px] h-[288px] m-14"
+        </AlertDialogHeader>
+        <div className="grid grid-cols-2">
+          <div className="flex flex-col gap-8 py-4 px-8 justify-start border-r border-greyscale-6">
+            <AlertDialogDescription className="text-dark-teal-2 font-medium text-xl leading-6 tracking-[-0.5%]">
+              Enter the address below to add to your vault
+            </AlertDialogDescription>
+            <div className="flex flex-col gap-2 ">
+              <p className="text-lg font-mono font-medium leading-[21.6px] tracking-[-0.09px] text-[#001E20]">
+                ADDRESS
+              </p>
+              <Input
+                placeholder="Enter address here"
+                value={inputAddress}
+                onChange={(e) => setInputAddress(e.target.value)}
+                maxLength={46}
               />
+              <p className="text-[#00474B] font-mono text-base font-normal leading-[19.2px] tracking-[-0.08px]">
+                46 characters maximum
+              </p>
             </div>
           </div>
-          {!inputAddress ? (
-            <div className="px-8 pb-8">
-              <AlertDialogAction onClick={handleAddAddress} disabled>
-                Add Address
-              </AlertDialogAction>
-            </div>
-          ) : (
-            <div className="px-8 pb-8">
-              <AlertDialogAction onClick={handleAddAddress}>
-                Add Address
-              </AlertDialogAction>
-            </div>
-          )}
-        </AlertDialogHeader>
+
+          <div>
+            <Image
+              src={radarImg}
+              alt="radar img"
+              className="w-[288px] h-[288px] m-14"
+            />
+          </div>
+        </div>
+
+        {!inputAddress ? (
+          <div className="px-8 pb-8">
+            <AlertDialogAction
+              onClick={handleAddAddress}
+              disabled
+              className="bg-light-teal-1 h-12 w-46 border-1"
+            >
+              Next
+            </AlertDialogAction>
+          </div>
+        ) : (
+          <div className="px-8 pb-8 ">
+            <AlertDialogAction
+              onClick={handleAddAddress}
+              className="bg-light-teal-1 h-12 w-46  border-1"
+            >
+              Next
+            </AlertDialogAction>
+          </div>
+        )}
       </AlertDialogContent>
     </AlertDialog>
   );
