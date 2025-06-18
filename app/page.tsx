@@ -34,6 +34,7 @@ import {
 } from "@tanstack/react-query";
 import { HoldingsChart } from "@/components/holdings-chart";
 import btcImage from "@/public/images/btc-shape.svg";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Transaction {
   txid: string;
@@ -89,6 +90,9 @@ export default function Home() {
 }
 function Dashboard() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  const [starredTransactions, setStarredTransactions] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     const savedAddress = localStorage.getItem("selectedBtcAddress");
@@ -97,9 +101,40 @@ function Dashboard() {
     }
   }, []);
 
+  // Load starred transactions when address changes
+  useEffect(() => {
+    if (!selectedAddress) {
+      setStarredTransactions(new Set());
+      return;
+    }
+    const saved = localStorage.getItem(
+      `starred-transactions-${selectedAddress}`
+    );
+    if (saved) {
+      setStarredTransactions(new Set(JSON.parse(saved)));
+    } else {
+      setStarredTransactions(new Set());
+    }
+  }, [selectedAddress]);
+
   const handleAddressSelect = (address: string) => {
     setSelectedAddress(address);
     localStorage.setItem("selectedBtcAddress", address);
+  };
+
+  // Toggle star function to be shared between components
+  const toggleStar = (txid: string) => {
+    const newStarred = new Set(starredTransactions);
+    if (newStarred.has(txid)) {
+      newStarred.delete(txid);
+    } else {
+      newStarred.add(txid);
+    }
+    setStarredTransactions(newStarred);
+    localStorage.setItem(
+      `starred-transactions-${selectedAddress}`,
+      JSON.stringify([...newStarred])
+    );
   };
 
   return (
@@ -126,8 +161,15 @@ function Dashboard() {
         <div className="bg-[#F0F1F1] py-4 border-t-2 border-border-color w-full border-b-2"></div>
       </div>
       <div className="flex flex-row w-full min-h-svh">
-        <div className="border-r-2 border-greyscale-6 max-w-[420px] w-full p-4 min-h-svh">
-          <AlertAddBtcAddress onAddressSelect={handleAddressSelect} />
+        <div className="border-r-2 border-greyscale-6 max-w-[420px] h-[850px] flex flex-col gap-8 w-full p-4 ">
+          <AlertAddBtcAddress onAddressSelect={handleAddressSelect} />{" "}
+          <ScrollArea className="h-[720px] w-full">
+            <StarredTransactions
+              address={selectedAddress}
+              starredTransactions={starredTransactions}
+              toggleStar={toggleStar}
+            />
+          </ScrollArea>
         </div>
         <div className="w-3/4 mt-4 ">
           <div className="h-full w-full flex flex-col gap-4">
@@ -146,7 +188,11 @@ function Dashboard() {
               <div className="bg-greyscale-white border border-border-color rounded-b flex flex-col">
                 <div className="flex-1 overflow-y-auto">
                   {selectedAddress && (
-                    <TransactionHistory address={selectedAddress} />
+                    <TransactionHistory
+                      address={selectedAddress}
+                      starredTransactions={starredTransactions}
+                      toggleStar={toggleStar}
+                    />
                   )}
                 </div>
               </div>
@@ -232,33 +278,17 @@ function AddressBalance({ address }: { address: string }) {
   );
 }
 
-function TransactionHistory({ address }: { address: string }) {
+function TransactionHistory({
+  address,
+  starredTransactions,
+  toggleStar,
+}: {
+  address: string;
+  starredTransactions: Set<string>;
+  toggleStar: (txid: string) => void;
+}) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [starredTransactions, setStarredTransactions] = useState<Set<string>>(
-    new Set()
-  );
   const itemsPerPage = 5;
-
-  useEffect(() => {
-    const saved = localStorage.getItem(`starred-transactions-${address}`);
-    if (saved) {
-      setStarredTransactions(new Set(JSON.parse(saved)));
-    }
-  }, [address]);
-
-  const toggleStar = (txid: string) => {
-    const newStarred = new Set(starredTransactions);
-    if (newStarred.has(txid)) {
-      newStarred.delete(txid);
-    } else {
-      newStarred.add(txid);
-    }
-    setStarredTransactions(newStarred);
-    localStorage.setItem(
-      `starred-transactions-${address}`,
-      JSON.stringify([...newStarred])
-    );
-  };
 
   const { isPending, error, data } = useQuery<Transaction[]>({
     queryKey: ["transactions", address],
@@ -499,6 +529,139 @@ function TransactionHistory({ address }: { address: string }) {
               </PaginationItem>
             </PaginationContent>
           </Pagination>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StarredTransactions({
+  address,
+  starredTransactions,
+  toggleStar,
+}: {
+  address: string;
+  starredTransactions: Set<string>;
+  toggleStar: (txid: string) => void;
+}) {
+  const { data: transactions } = useQuery<Transaction[]>({
+    queryKey: ["transactions", address],
+    queryFn: async () => {
+      const response = await fetch(
+        `https://mempool.space/api/address/${address}/txs`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch transactions");
+      }
+      return await response.json();
+    },
+    enabled: !!address,
+  });
+
+  // Filter starred transactions
+  const starredTxs =
+    transactions?.filter((tx) => starredTransactions.has(tx.txid)) || [];
+
+  if (!address) {
+    return (
+      <div className="mt-6">
+        <h3 className="font-mono text-lg font-medium text-dark-teal-2 mb-4">
+          STARRED TRANSACTIONS
+        </h3>
+        <p className="text-dark-teal-2 font-mono text-sm">
+          Select an address to view starred transactions
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6">
+      <h3 className="font-mono text-lg font-medium text-dark-teal-2 mb-4">
+        STARRED TRANSACTIONS
+      </h3>
+      {starredTxs.length === 0 ? (
+        <p className="text-dark-teal-2 font-mono text-sm">
+          No starred transactions yet
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {starredTxs.map((tx) => {
+            // Calculate transaction amount
+            let amount = 0;
+            let type: "received" | "sent" = "sent";
+
+            // Check outputs first
+            tx.vout.forEach((output) => {
+              if (output.scriptpubkey_address === address) {
+                amount += output.value;
+              }
+            });
+
+            // Check inputs
+            tx.vin.forEach((input) => {
+              if (
+                input.prevout &&
+                input.prevout.scriptpubkey_address === address
+              ) {
+                amount -= input.prevout.value;
+              }
+            });
+
+            // Determine type based on net amount
+            if (amount > 0) {
+              type = "received";
+            } else {
+              type = "sent";
+              amount = Math.abs(amount);
+            }
+
+            return (
+              <div
+                key={tx.txid}
+                className="bg-greyscale-0 border border-greyscale-6 rounded p-3 hover:bg-greyscale-1"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-mono ${
+                      type === "received"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {type === "received" ? "RECEIVE" : "SEND"}
+                  </span>
+                  <button
+                    onClick={() => toggleStar(tx.txid)}
+                    className="hover:scale-110 transition-transform"
+                    title="Remove from favorites"
+                  >
+                    <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                  </button>
+                </div>
+                <div className="font-mono text-xs text-dark-teal-2 mb-1">
+                  {tx.txid.substring(0, 16)}...
+                </div>
+                <div className="flex justify-between items-center">
+                  <span
+                    className={`font-mono text-sm ${
+                      type === "received" ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {type === "received" ? "+" : "-"}
+                    {(amount / 100000000).toFixed(8)} BTC
+                  </span>
+                  <span className="font-mono text-xs text-gray-500">
+                    {tx.status.block_time
+                      ? new Date(
+                          tx.status.block_time * 1000
+                        ).toLocaleDateString()
+                      : "Pending"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
