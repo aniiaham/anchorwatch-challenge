@@ -122,7 +122,7 @@ export function HoldingsChart({ address }: HoldingsChartProps) {
               runningBalance += txBalance;
             }
 
-            const btcBalance = runningBalance / 100000000;
+            const btcBalance = Math.max(0, runningBalance / 100000000);
             const usdBalance = btcBalance * btcPrice.bitcoin.usd;
 
             return {
@@ -247,10 +247,10 @@ function CustomToolTop({
         <div className="flex flex-col gap-1">
           <p className="text-[#002C2F] font-mono text-xs uppercase">Balance</p>
           <p className="text-[#002C2F] font-mono font-medium">
-            {data.btc_balance.toFixed(8)} BTC
+            {Math.max(0, data.btc_balance).toFixed(8)} BTC
           </p>
           <p className="text-sm text-[#002C2F] font-mono">
-            {data.usd_balance.toLocaleString("en-US", {
+            {Math.max(0, data.usd_balance).toLocaleString("en-US", {
               style: "currency",
               currency: "USD",
               minimumFractionDigits: 2,

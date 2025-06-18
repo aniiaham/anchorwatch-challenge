@@ -257,7 +257,7 @@ function AddressBalance({ address }: { address: string }) {
       }, 0)
     : 0;
 
-  const btcBalance = addressBalance / 100000000;
+  const btcBalance = Math.max(0, addressBalance / 100000000);
   const usdValue = priceData ? btcBalance * priceData.USD : 0;
 
   return (
@@ -485,7 +485,7 @@ function TransactionHistory({
                 </div>
               </td>
               <td className="py-3 px-2 font-mono text-sm text-dark-teal-2 font-medium">
-                {(tx.runningBalance / 100000000).toFixed(8)}
+                {Math.max(0, tx.runningBalance / 100000000).toFixed(8)}
               </td>
               <td className="py-3 px-2">
                 <span
