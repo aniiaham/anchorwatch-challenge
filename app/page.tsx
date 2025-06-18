@@ -26,21 +26,14 @@ import {
 } from "@/components/ui/pagination";
 import radarImg from "@/public/images/radar-1.png";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   QueryClient,
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
+import { HoldingsChart } from "@/components/holdings-chart";
+import btcImage from "@/public/images/btc-shape.svg";
 
 interface Transaction {
   txid: string;
@@ -78,6 +71,13 @@ interface Transaction {
   };
 }
 
+interface FormattedTransaction extends Transaction {
+  amount: number;
+  type: "received" | "sent";
+  netAmount: number;
+  runningBalance: number;
+}
+
 const queryClient = new QueryClient();
 
 export default function Home() {
@@ -90,6 +90,18 @@ export default function Home() {
 function Dashboard() {
   const [selectedAddress, setSelectedAddress] = useState<string>("");
 
+  useEffect(() => {
+    const savedAddress = localStorage.getItem("selectedBtcAddress");
+    if (savedAddress) {
+      setSelectedAddress(savedAddress);
+    }
+  }, []);
+
+  const handleAddressSelect = (address: string) => {
+    setSelectedAddress(address);
+    localStorage.setItem("selectedBtcAddress", address);
+  };
+
   return (
     <section className="bg-greyscale-white min-h-svh w-full">
       <nav className="bg-[#F0F1F1] flex flex-row items-center justify-between px-6 h-20">
@@ -101,8 +113,9 @@ function Dashboard() {
         </div>
         <Image src={viewIcon} alt="view eye" />
       </nav>
-      <div className="bg-greyscale-white h-20 text-dark-teal-2 font-mono font-medium leading-[36.8px] text-[32px] flex items-center pl-4">
-        {selectedAddress || "BTC ADDRESS HERE"}
+      <div className="bg-greyscale-white h-18 text-dark-teal-2 font-mono font-medium leading-[114%] tracking-[5%] text-2xl flex items-center justify-between px-4">
+        <div>{selectedAddress || "BTC ADDRESS HERE"}</div>
+        {selectedAddress && <AddressBalance address={selectedAddress} />}
       </div>
       <div className="flex flex-row w-full">
         <div className="bg-[#F0F1F1] py-4 border-t-2 border-border-color border-r-2 border-b-2 max-w-[420px] w-full">
@@ -114,12 +127,20 @@ function Dashboard() {
       </div>
       <div className="flex flex-row w-full min-h-svh">
         <div className="border-r-2 border-greyscale-6 max-w-[420px] w-full p-4">
-          <AlertAddBtcAddress onAddressSelect={setSelectedAddress} />
+          <AlertAddBtcAddress onAddressSelect={handleAddressSelect} />
         </div>
         <div className="w-3/4 mt-4">
-          <div className="h-full w-full flex flex-col ">
+          <div className="h-full w-full flex flex-col gap-4">
+            <div className="h-[400px] bg-greyscale-2 rounded-t border border-border-color mx-4">
+              <div className="font-mono text-xl font-medium leading-6 py-3 ml-2">
+                HOLDINGS
+              </div>
+              <div className="bg-greyscale-white border border-border-color rounded-b h-[350px]">
+                <HoldingsChart address={selectedAddress} />
+              </div>
+            </div>
             <div className="h-[50px] bg-greyscale-2 rounded-t border border-border-color mx-4">
-              <div className="font-mono text-xl font-medium leading-6 p-3 ml-2">
+              <div className="font-mono text-xl font-medium leading-6 py-3 ml-2">
                 TRANSACTIONS
               </div>
               <div className="bg-greyscale-white border border-border-color rounded-b flex flex-col">
@@ -134,6 +155,53 @@ function Dashboard() {
         </div>
       </div>
     </section>
+  );
+}
+
+function AddressBalance({ address }: { address: string }) {
+  const { data } = useQuery<Transaction[]>({
+    queryKey: ["transactions", address],
+    queryFn: async () => {
+      const response = await fetch(
+        `https://mempool.space/api/address/${address}/txs`
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch transactions");
+      }
+      return await response.json();
+    },
+    enabled: !!address,
+  });
+
+  const addressBalance = data
+    ? data.reduce((balance, tx) => {
+        let txBalance = 0;
+
+        // Add outputs sent to this address
+        tx.vout.forEach((output) => {
+          if (output.scriptpubkey_address === address) {
+            txBalance += output.value;
+          }
+        });
+
+        // Subtract inputs spent from this address
+        tx.vin.forEach((input) => {
+          if (input.prevout && input.prevout.scriptpubkey_address === address) {
+            txBalance -= input.prevout.value;
+          }
+        });
+
+        return balance + txBalance;
+      }, 0)
+    : 0;
+
+  return (
+    <div className="text-right">
+      <div className="font-mono text-2xl font-medium text-black leading-[114%] tracking-[5%] flex flex-row gap-2 items-center">
+        <Image src={btcImage} alt="btc shape" />
+        {(addressBalance / 100000000).toFixed(8)} BTC
+      </div>
+    </div>
   );
 }
 
@@ -155,10 +223,68 @@ function TransactionHistory({ address }: { address: string }) {
     enabled: !!address,
   });
 
-  const totalPages = data ? Math.ceil(data.length / itemsPerPage) : 0;
+  // Format transactions with calculated amounts for display
+  const formattedTransactions: FormattedTransaction[] = data
+    ? data
+        .map((tx) => {
+          let amount = 0;
+          let type: "received" | "sent" = "sent";
+
+          // Calculate net amount for this transaction
+          tx.vout.forEach((output) => {
+            if (output.scriptpubkey_address === address) {
+              amount += output.value;
+              type = "received";
+            }
+          });
+
+          tx.vin.forEach((input) => {
+            if (
+              input.prevout &&
+              input.prevout.scriptpubkey_address === address
+            ) {
+              amount -= input.prevout.value;
+              type = "sent";
+            }
+          });
+
+          return {
+            ...tx,
+            amount: Math.abs(amount),
+            type,
+            netAmount: amount,
+            runningBalance: 0, // Will be calculated after sorting
+          };
+        })
+        // Sort by date (oldest first for running balance calculation)
+        .sort((a, b) => {
+          const timeA = a.status.block_time || 0;
+          const timeB = b.status.block_time || 0;
+          return timeA - timeB;
+        })
+        // Calculate running balance
+        .map((tx, index, sortedTxs) => {
+          const runningBalance = sortedTxs
+            .slice(0, index + 1)
+            .reduce((balance, prevTx) => balance + prevTx.netAmount, 0);
+
+          return {
+            ...tx,
+            runningBalance,
+          };
+        })
+        // Sort by date (newest first for display)
+        .reverse()
+    : [];
+
+  const totalPages = formattedTransactions
+    ? Math.ceil(formattedTransactions.length / itemsPerPage)
+    : 0;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentTransactions = data ? data.slice(startIndex, endIndex) : [];
+  const currentTransactions = formattedTransactions
+    ? formattedTransactions.slice(startIndex, endIndex)
+    : [];
 
   if (isPending)
     return (
@@ -187,15 +313,20 @@ function TransactionHistory({ address }: { address: string }) {
         <thead>
           <tr className="h-[50px] bg-greyscale-2 w-full rounded border border-border-color mx-4">
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
+              TYPE
+            </th>
+            <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
               TX ID
             </th>
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
               DATE
             </th>
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
-              AMOUNT (SATS)
+              AMOUNT (BTC)
             </th>
-
+            <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
+              BALANCE (BTC)
+            </th>
             <th className="text-left py-3 px-2 font-mono text-sm font-medium text-dark-teal-2">
               STATUS
             </th>
@@ -207,6 +338,11 @@ function TransactionHistory({ address }: { address: string }) {
               key={tx.txid}
               className="border-b border-greyscale-6 hover:bg-greyscale-0"
             >
+              <td className="py-3 px-2 font-mono text-sm font-medium">
+                <span className="px-2 py-1 rounded text-sm text-light-teal-1">
+                  {tx.type === "received" ? "RECEIVE" : "SEND"}
+                </span>
+              </td>
               <td className="py-3 px-2 font-mono text-sm text-light-teal-1 font-normal">
                 <div className="truncate max-w-[150px]" title={tx.txid}>
                   {tx.txid}
@@ -218,8 +354,19 @@ function TransactionHistory({ address }: { address: string }) {
                   ? new Date(tx.status.block_time * 1000).toLocaleDateString()
                   : "-"}
               </td>
-              <td className="py-3 px-2 font-mono text-sm text-light-teal-1 font-normal">
-                {tx.fee.toLocaleString()}
+
+              <td className="py-3 px-2 font-mono text-sm font-normal">
+                <div
+                  className={`${
+                    tx.type === "received" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {tx.type === "received" ? "+" : "-"}
+                  {(tx.amount / 100000000).toFixed(8)}
+                </div>
+              </td>
+              <td className="py-3 px-2 font-mono text-sm text-dark-teal-2 font-medium">
+                {(tx.runningBalance / 100000000).toFixed(8)}
               </td>
               <td className="py-3 px-2">
                 <span
@@ -374,81 +521,3 @@ export function AlertAddBtcAddress({
     </AlertDialog>
   );
 }
-
-// function HoldingsGraph({ address }: { address: string }) {
-//   return (
-//     <div className="relative h-full w-full bg-grayscale-white p-6 ">
-//       <ResponsiveContainer
-//         width="100%"
-//         height="100%"
-//         className="bg-grayscale-white dark:bg-dark-teal-1"
-//       >
-//         <AreaChart margin={{ top: 50, right: 30, left: 30, bottom: 50 }}>
-//           <XAxis
-//             dataKey="timestamp"
-//             textAnchor="end"
-//             scale={"auto"}
-//             tickFormatter={(value) => {
-//               const date = new Date((value as number) * 1_000);
-//               const formattedDate = date.toLocaleString("en-US", {
-//                 day: "numeric",
-//                 month: "short",
-//               });
-//               return formattedDate;
-//             }}
-//             interval={0}
-//             stroke="#002C2F"
-//             tickLine={false}
-//             tickMargin={10}
-//           />
-//           <YAxis
-//             type="number"
-//             allowDataOverflow={true}
-//             stroke="#46ADB4"
-//             height={100}
-//             tickLine={false}
-//             axisLine={false}
-//             interval={1}
-//             tickFormatter={(value) => {
-//               if (!value) return `$0`;
-//               if (typeof value === "number") return `$${value.toFixed(0)}`;
-//               return `$0`;
-//             }}
-//             tickMargin={20}
-//           />
-//           <Tooltip cursor={false} />
-//           <CartesianGrid stroke="#0E656B" strokeWidth={1} vertical={false} />
-//           <defs>
-//             <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-//               <stop offset="1%" stopColor="#46ADB4" stopOpacity={0.7} />
-//               <stop offset="50%" stopColor="#46ADB4" stopOpacity={0.25} />
-//               <stop offset="100%" stopColor="#46ADB4" stopOpacity={0.1} />
-//             </linearGradient>
-//           </defs>
-
-//           <Area
-//             fillOpacity={1}
-//             fill="url(#colorUv)"
-//             type="monotone"
-//             dataKey="usd_balance"
-//             stroke="#0E656B"
-//             activeDot={{
-//               stroke: "#E2B000",
-//               strokeWidth: 1,
-//               fill: "#FFFCDE",
-//               r: 8,
-//               strokeDasharray: "",
-//             }}
-//             dot={{
-//               stroke: "#E2B000",
-//               strokeWidth: 1,
-//               fill: "#E2B000",
-//               r: 8,
-//               strokeDasharray: "",
-//             }}
-//           />
-//         </AreaChart>
-//       </ResponsiveContainer>
-//     </div>
-//   );
-// }
