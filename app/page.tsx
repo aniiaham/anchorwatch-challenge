@@ -221,7 +221,7 @@ export function AlertAddBtcAddress({
           <AlertDialogCancel className="flex flex-row justify-end">
             <X />
           </AlertDialogCancel>
-          <AlertDialogTitle className="bg-[#F0F1F1] border border-t-greyscale-6  p-8 w-full h-[50px] flex items-center text-dark-teal-2">
+          <AlertDialogTitle className="bg-[#F0F1F1] border border-t-greyscale-6 h-12 py-4 px-8 w-full  flex items-center text-dark-teal-2">
             ADD BTC ADDRESS
           </AlertDialogTitle>
 
