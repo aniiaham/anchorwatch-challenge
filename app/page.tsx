@@ -433,7 +433,7 @@ function TransactionHistory({ address }: { address: string }) {
   );
 }
 
-export function AlertAddBtcAddress({
+function AlertAddBtcAddress({
   onAddressSelect,
 }: {
   onAddressSelect: (address: string) => void;
