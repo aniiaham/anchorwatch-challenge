@@ -696,12 +696,59 @@ function AlertAddBtcAddress({
 }) {
   const [inputAddress, setInputAddress] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
 
-  const handleAddAddress = () => {
-    if (inputAddress.trim()) {
-      onAddressSelect(inputAddress.trim());
-      setIsOpen(false);
-      setInputAddress("");
+  const validateAddress = async (address: string) => {
+    const addr = address.trim();
+    if (!addr) {
+      setValidationError("");
+      return false;
+    }
+
+    setIsValidating(true);
+    setValidationError("");
+
+    try {
+      const response = await fetch(
+        `https://mempool.space/api/v1/validate-address/${addr}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.isvalid) {
+          setValidationError("");
+          return true;
+        } else {
+          setValidationError("Invalid Bitcoin address format");
+          return false;
+        }
+      } else {
+        setValidationError("Invalid Bitcoin address format");
+        return false;
+      }
+    } catch (error) {
+      setValidationError(
+        "Unable to validate address. Please check your connection."
+      );
+      return false;
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleAddAddress = async () => {
+    const address = inputAddress.trim();
+    if (address) {
+      const isValid = await validateAddress(address);
+
+      console.log(isValid);
+      if (isValid) {
+        onAddressSelect(address);
+        setIsOpen(false);
+        setInputAddress("");
+        setValidationError("");
+      }
     }
   };
 
@@ -740,7 +787,13 @@ function AlertAddBtcAddress({
                     value={inputAddress}
                     onChange={(e) => setInputAddress(e.target.value)}
                     maxLength={46}
+                    className={validationError ? "border-red-500" : ""}
                   />
+                  {validationError && (
+                    <p className="text-red-500 font-mono text-sm font-normal leading-[16.8px] tracking-[-0.07px]">
+                      {validationError}
+                    </p>
+                  )}
                   <p className="text-[#00474B] font-mono text-base font-normal leading-[19.2px] tracking-[-0.08px]">
                     46 characters maximum
                   </p>
@@ -749,22 +802,23 @@ function AlertAddBtcAddress({
               <div>
                 {!inputAddress ? (
                   <div className="pb-4">
-                    <AlertDialogAction
+                    <Button
                       onClick={handleAddAddress}
                       disabled
                       className="bg-light-teal-1 h-12 w-46 border-1"
                     >
                       Next
-                    </AlertDialogAction>
+                    </Button>
                   </div>
                 ) : (
                   <div className="pb-4">
-                    <AlertDialogAction
+                    <Button
                       onClick={handleAddAddress}
+                      disabled={isValidating}
                       className="bg-light-teal-1 h-12 w-46  border-1"
                     >
-                      Next
-                    </AlertDialogAction>
+                      {isValidating ? "Validating..." : "Next"}
+                    </Button>
                   </div>
                 )}
               </div>
